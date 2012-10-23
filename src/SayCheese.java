@@ -3,7 +3,7 @@ import com.googlecode.javacv.OpenCVFrameGrabber;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
-public class CaptureImage {
+public class SayCheese {
   private static void captureFrame() {
   // 0-default camera, 1 - next...so on
   final OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);

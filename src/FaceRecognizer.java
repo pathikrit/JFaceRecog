@@ -9,7 +9,6 @@ import java.io.File;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.OpenCVFrameGrabber;
-import com.googlecode.javacv.cpp.opencv_objdetect;
 
 import static com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
 import static com.googlecode.javacv.cpp.opencv_core.CvRect;
@@ -27,7 +26,7 @@ import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNIN
 import static com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
 
-public class FaceApplet extends Applet implements Runnable {
+public class FaceRecognizer extends Applet implements Runnable {
 
   private CvHaarClassifierCascade classifier = null;
   private CvMemStorage storage = null;
@@ -39,7 +38,7 @@ public class FaceApplet extends Applet implements Runnable {
   @Override public void init() {
     try {
       File classifierFile = Loader.extractResource("haarcascade_frontalface_alt.xml", null, "classifier", ".xml");
-      Loader.load(opencv_objdetect.class); // Preload the opencv_objdetect module to work around a known bug.
+      //Loader.load(opencv_objdetect.class); // Preload the opencv_objdetect module to work around a known bug.
       classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
       classifierFile.delete();
       storage = CvMemStorage.create();
