@@ -1,3 +1,5 @@
+package com.addepar.fun;
+
 import com.googlecode.javacv.OpenCVFrameGrabber;
 
 import com.googlecode.javacv.cpp.opencv_core.IplImage;

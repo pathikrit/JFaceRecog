@@ -1,3 +1,5 @@
+package com.addepar.fun;
+
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.CanvasFrame;
 import com.googlecode.javacv.OpenCVFrameGrabber;
