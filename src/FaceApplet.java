@@ -6,15 +6,27 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.OpenCVFrameGrabber;
 import com.googlecode.javacv.cpp.opencv_objdetect;
 
-import static com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_imgproc.*;
-import static com.googlecode.javacv.cpp.opencv_objdetect.*;
-import static com.googlecode.javacv.cpp.opencv_highgui.*;
+import static com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
+import static com.googlecode.javacv.cpp.opencv_core.CvRect;
+import static com.googlecode.javacv.cpp.opencv_core.CvSeq;
+import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
+import static com.googlecode.javacv.cpp.opencv_core.IplImage;
+import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
+import static com.googlecode.javacv.cpp.opencv_core.cvGetSeqElem;
+import static com.googlecode.javacv.cpp.opencv_core.cvLoad;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_BGR2GRAY;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_INTER_AREA;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvCvtColor;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvResize;
+import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
+import static com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
+import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
 
 /**
  *
@@ -32,39 +44,21 @@ public class FaceApplet extends Applet implements Runnable {
 
     @Override public void init() {
         try {
-            // Load the classifier file from Java resources.
-            String classiferName = "haarcascade_frontalface_alt.xml";
-            File classifierFile = Loader.extractResource(classiferName, null, "classifier", ".xml");
-            if (classifierFile == null || classifierFile.length() <= 0) {
-                throw new IOException("Could not extract \"" + classiferName + "\" from Java resources.");
-            }
-
-            // Preload the opencv_objdetect module to work around a known bug.
-            Loader.load(opencv_objdetect.class);
+            File classifierFile = Loader.extractResource("haarcascade_frontalface_alt.xml", null, "classifier", ".xml");
+            Loader.load(opencv_objdetect.class); // Preload the opencv_objdetect module to work around a known bug.
             classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
             classifierFile.delete();
             if (classifier.isNull()) {
                 throw new IOException("Could not load the classifier file.");
             }
-
             storage = CvMemStorage.create();
         } catch (Exception e) {
-            if (exception == null) {
-                exception = e;
-                repaint();
-            }
+            e.printStackTrace();
         }
     }
 
     @Override public void start() {
-        try {
-            new Thread(this).start();
-        } catch (Exception e) {
-            if (exception == null) {
-                exception = e;
-                repaint();
-            }
-        }
+      new Thread(this).start();
     }
 
     public void run() {
