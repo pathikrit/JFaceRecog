@@ -28,7 +28,7 @@ import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNIN
 import static com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
 
-public class FaceRecognizer extends Applet implements Runnable {
+public class JFaces extends Applet implements Runnable {
 
   private CvHaarClassifierCascade classifier = null;
   private CvMemStorage storage = null;

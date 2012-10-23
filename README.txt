@@ -8,7 +8,7 @@ Linux:
 
 
 
-Finally, Open IntelliJ -> File -> Open Project -> Open the .iml file
+Finally, Open IntelliJ -> File -> Open -> Open the .iml file
 
 
 
