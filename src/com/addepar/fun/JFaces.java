@@ -5,8 +5,12 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
@@ -24,6 +28,7 @@ import static com.googlecode.javacv.cpp.opencv_imgproc.CV_BGR2GRAY;
 import static com.googlecode.javacv.cpp.opencv_imgproc.CV_INTER_AREA;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvCvtColor;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvResize;
+import static com.googlecode.javacv.cpp.opencv_highgui.cvSaveImage;
 import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
 import static com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
@@ -33,11 +38,10 @@ public class JFaces extends Applet implements Runnable {
   private CvHaarClassifierCascade classifier = null;
   private CvMemStorage storage = null;
   private FrameGrabber grabber = null;
-  private IplImage grabbedImage = null, grayImage = null, smallImage = null;
+  private IplImage grabbedImage = null;
   private CvSeq faces = null;
   private boolean stop = false;
-
-  private final int CAMERA_NUMBER = 0;
+  private BufferedImage currentFace = null;
 
   @Override public void init() {
     try {
@@ -57,6 +61,7 @@ public class JFaces extends Applet implements Runnable {
 
   public void run() {
     try {
+      int CAMERA_NUMBER = 0;
       try {
         grabber = FrameGrabber.createDefault(CAMERA_NUMBER);
       } catch (Exception e) {
@@ -64,24 +69,22 @@ public class JFaces extends Applet implements Runnable {
         grabber = new OpenCVFrameGrabber(CAMERA_NUMBER);
       }
 
-      grabber.setImageWidth(getWidth());
-      grabber.setImageHeight(getHeight());
       grabber.start();
       grabbedImage = grabber.grab();
 
-      grayImage  = IplImage.create(grabbedImage.width(),   grabbedImage.height(),   IPL_DEPTH_8U, 1);
-      smallImage = IplImage.create(grabbedImage.width()/4, grabbedImage.height()/4, IPL_DEPTH_8U, 1);
+      final IplImage grayImage = IplImage.create(grabbedImage.width(), grabbedImage.height(), IPL_DEPTH_8U, 1);
+      final IplImage tinyImage = IplImage.create(grabbedImage.width()/4, grabbedImage.height()/4, IPL_DEPTH_8U, 1);
       stop = false;
       while (!stop && (grabbedImage = grabber.grab()) != null) {
         if (faces == null) {
           cvClearMemStorage(storage);
           cvCvtColor(grabbedImage, grayImage, CV_BGR2GRAY);
-          cvResize(grayImage, smallImage, CV_INTER_AREA);
-          faces = cvHaarDetectObjects(smallImage, classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+          cvResize(grayImage, tinyImage, CV_INTER_AREA);
+          faces = cvHaarDetectObjects(tinyImage, classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
           repaint();
         }
       }
-      grabbedImage = grayImage = smallImage = null;
+      grabbedImage = null;
       grabber.stop();
       grabber.release();
       grabber = null;
@@ -106,17 +109,25 @@ public class JFaces extends Applet implements Runnable {
       int total = faces.total();
       for (int i = 0; i < total; i++) {
         CvRect r = new CvRect(cvGetSeqElem(faces, i));
-        g2.drawRect(r.x()*4, r.y()*4, r.width()*4, r.height()*4);
+        g2.drawRect(r.x() * 4, r.y() * 4, r.width() * 4, r.height() * 4);
+        currentFace = image.getSubimage(r.x()*4, r.y()*4, r.width()*4, r.height()*4);
       }
       faces = null;
+      g2.drawString("Rick Match", 10, 10);
     }
     g.drawImage(image, 0, 0, null);
-
   }
+
 
   @Override public void stop() {
     stop = true;
   }
 
-  @Override public void destroy() { }
+  @Override public void destroy() {
+    try {
+      ImageIO.write(currentFace, "png", new File("capture.png"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 }
