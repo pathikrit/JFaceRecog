@@ -1,25 +1,19 @@
 package com.addepar.fun;
 
+import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.OpenCVFrameGrabber;
 
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 
 public class SayCheese {
-  private static void captureFrame() {
-  // 0-default camera, 1 - next...so on
-  final OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
-  try {
+
+  public static void main(String[] args) throws FrameGrabber.Exception {
+    final OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
     grabber.start();
     IplImage img = grabber.grab();
     if (img != null) {
-    cvSaveImage("capture.jpg", img);
+      cvSaveImage("capture.jpg", img);
     }
-  } catch (Exception e) {
-    e.printStackTrace();
-  }
-  }
-  public static void main(String[] args) {
-  captureFrame();
   }
 }
