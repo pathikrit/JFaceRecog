@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.JApplet;
+
 
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
@@ -33,7 +35,7 @@ import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNIN
 import static com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
 
-public class JFaces extends Applet implements Runnable {
+public class JFaces extends JApplet implements Runnable {
 
   private CvHaarClassifierCascade classifier = null;
   private CvMemStorage storage = null;
@@ -50,6 +52,7 @@ public class JFaces extends Applet implements Runnable {
       classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
       classifierFile.delete();
       storage = CvMemStorage.create();
+      setSize(1600, 900);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -109,13 +112,17 @@ public class JFaces extends Applet implements Runnable {
       int total = faces.total();
       for (int i = 0; i < total; i++) {
         CvRect r = new CvRect(cvGetSeqElem(faces, i));
-        g2.drawRect(r.x() * 4, r.y() * 4, r.width() * 4, r.height() * 4);
+        if (currentFace != null) {
+          g.clearRect(image.getWidth(), 0, currentFace.getWidth(), currentFace.getHeight());
+        }
         currentFace = image.getSubimage(r.x()*4, r.y()*4, r.width()*4, r.height()*4);
+        g.drawImage(currentFace, image.getWidth(), 0, null);
+        g2.drawRect(r.x() * 4, r.y() * 4, r.width() * 4, r.height() * 4);
       }
       faces = null;
-      g2.drawString("Rick Match", 10, 10);
     }
     g.drawImage(image, 0, 0, null);
+
   }
 
 
@@ -129,5 +136,9 @@ public class JFaces extends Applet implements Runnable {
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  public double getMatchProbability() {
+    return 90 + 10*Math.random();
   }
 }
