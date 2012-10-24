@@ -37,6 +37,8 @@ public class JFaces extends Applet implements Runnable {
   private CvSeq faces = null;
   private boolean stop = false;
 
+  private final int CAMERA_NUMBER = 0;
+
   @Override public void init() {
     try {
       File classifierFile = Loader.extractResource("haarcascade_frontalface_alt.xml", null, "classifier", ".xml");
@@ -56,10 +58,10 @@ public class JFaces extends Applet implements Runnable {
   public void run() {
     try {
       try {
-        grabber = FrameGrabber.createDefault(0);
+        grabber = FrameGrabber.createDefault(CAMERA_NUMBER);
       } catch (Exception e) {
         if (grabber != null) grabber.release();
-        grabber = new OpenCVFrameGrabber(0);
+        grabber = new OpenCVFrameGrabber(CAMERA_NUMBER);
       }
 
       grabber.setImageWidth(getWidth());
@@ -109,6 +111,7 @@ public class JFaces extends Applet implements Runnable {
       faces = null;
     }
     g.drawImage(image, 0, 0, null);
+
   }
 
   @Override public void stop() {
