@@ -1,0 +1,64 @@
+package com.addepar.fun.hack;
+
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+import com.googlecode.javacpp.Loader;
+import com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
+import com.googlecode.javacv.cpp.opencv_core.CvRect;
+import com.googlecode.javacv.cpp.opencv_core.CvSeq;
+import com.googlecode.javacv.cpp.opencv_core.IplImage;
+import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
+
+import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
+import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
+import static com.googlecode.javacv.cpp.opencv_core.cvGetSeqElem;
+import static com.googlecode.javacv.cpp.opencv_core.cvLoad;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_BGR2GRAY;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_INTER_AREA;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvCvtColor;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvResize;
+import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
+import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
+
+public class FaceDetector {
+
+  private static final CvHaarClassifierCascade classifier;
+  static {
+    final File classifierFile;
+    try {
+      classifierFile = Loader.extractResource("haarcascade_frontalface_alt.xml", null, "classifier", ".xml");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    // Loader.load(opencv_objdetect.class); // Preload the opencv_objdetect module to work around a known bug.
+    classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
+  }
+
+  private final static CvMemStorage storage = CvMemStorage.create();
+
+  public static synchronized List<Rectangle> detectFaces(IplImage image) {
+    cvClearMemStorage(storage);
+    final CvSeq cvSeq = cvHaarDetectObjects(toTinyGray(image), classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+    final int N = cvSeq.total();
+    final List<Rectangle> ret = Lists.newArrayListWithCapacity(N);
+    for (int i = 0; i < N; i++) {
+      CvRect r = new CvRect(cvGetSeqElem(cvSeq, i));
+      ret.add(new Rectangle(r.x()*4, r.y()*4, r.width()*4, r.height()*4));
+    }
+    return ret;
+  }
+
+  public static IplImage toTinyGray(IplImage image) {
+    final IplImage gray = IplImage.create(image.width(), image.height(), IPL_DEPTH_8U, 1);
+    final IplImage tiny = IplImage.create(image.width()/4, image.height()/4, IPL_DEPTH_8U, 1);
+    cvCvtColor(image, gray, CV_BGR2GRAY);
+    cvResize(gray, tiny, CV_INTER_AREA);
+    return tiny;
+  }
+
+}
