@@ -27,7 +27,6 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   private boolean running = true;
   private boolean dialog = false;
 
-
   @Override public void init() {
     cam.start();
     setSize(1600, 900);
@@ -83,7 +82,6 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
     }
   }
 
-
   @Override public void stop() {
     running = false;
   }
@@ -94,17 +92,18 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   private final FaceDb db = new FaceDb();
 
-
   @Override
   public void mouseClicked(MouseEvent mouseEvent) {
-    if (currentFace != null) {
-      dialog = true;
-      final String name = JOptionPane.showInputDialog(null, "Save as?");
-      dialog = false;
-      db.add(name, currentFace);
-      System.out.println("Saving " + name + "...");
-    } else {
+    if (currentFace == null) {
       System.out.println("No face in frame");
+      return;
+    }
+    dialog = true;
+    final String name = JOptionPane.showInputDialog(null, "Save as?");
+    dialog = false;
+    if (name != null) {
+      System.out.println("Saving " + name + "...");
+      db.add(name, currentFace);
     }
   }
 
