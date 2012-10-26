@@ -21,7 +21,6 @@ import com.googlecode.javacv.cpp.opencv_core.MatVector;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import org.apache.commons.lang3.tuple.Pair;
 
-import static com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer;
 import static com.googlecode.javacv.cpp.opencv_core.CV_32SC1;
 import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
 import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
@@ -91,9 +90,9 @@ public class FacialRecognition {
     // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
     private static final Double THRESHHOLD = 100d;
     private static final FaceRecognizerPtr ALGO_FACTORY =
-        createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
-        //createFisherFaceRecognizer(0, THRESHHOLD).get(),
-        //createEigenFaceRecognizer(0, THRESHHOLD).get()
+        com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
+        //com.googlecode.javacv.cpp.opencv_contrib.createFisherFaceRecognizer(0, THRESHHOLD);
+        //com.googlecode.javacv.cpp.opencv_contrib.createEigenFaceRecognizer(0, THRESHHOLD);
     private static final Pair<Integer, Integer> scale = Pair.of(100, 100);
 
     private final Map<Integer, String> names = Maps.newHashMap();
