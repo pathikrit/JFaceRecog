@@ -36,30 +36,30 @@ public class MotionDetector {
     CvMemStorage storage = CvMemStorage.create();
 
     while (canvasFrame.isVisible() && (frame = grabber.grab()) != null) {
-    cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
-    if (image == null) {
-       image = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
-       cvCvtColor(frame, image, CV_RGB2GRAY);
-    } else {
-       prevImage = image;
-       image = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
-       cvCvtColor(frame, image, CV_RGB2GRAY);
-    }
+      cvSmooth(frame, frame, CV_GAUSSIAN, 9, 9, 2, 2);
+      if (image == null) {
+         image = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
+         cvCvtColor(frame, image, CV_RGB2GRAY);
+      } else {
+         prevImage = image;
+         image = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
+         cvCvtColor(frame, image, CV_RGB2GRAY);
+      }
 
-    if (diff == null) {
-       diff = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
-    }
+      if (diff == null) {
+         diff = IplImage.create(frame.width(), frame.height(), IPL_DEPTH_8U, 1);
+      }
 
-    if (prevImage != null) {
-       cvAbsDiff(image, prevImage, diff);
-       cvThreshold(diff, diff, 64, 255, CV_THRESH_BINARY);
-       canvasFrame.showImage(diff);
-       CvSeq contour = new CvSeq(null);
-       cvFindContours(diff, storage, contour, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
-       while (contour != null && !contour.isNull()) {
-        contour = contour.h_next();
-       }
-    }
+      if (prevImage != null) {
+         cvAbsDiff(image, prevImage, diff);
+         cvThreshold(diff, diff, 64, 255, CV_THRESH_BINARY);
+         canvasFrame.showImage(diff);
+         CvSeq contour = new CvSeq(null);
+         cvFindContours(diff, storage, contour, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+         while (contour != null && !contour.isNull()) {
+          contour = contour.h_next();
+         }
+      }
     }
     grabber.stop();
     canvasFrame.dispose();
