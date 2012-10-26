@@ -25,6 +25,8 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   private BufferedImage currentFace = null;
 
   private boolean running = true;
+  private boolean dialog = false;
+
 
   @Override public void init() {
     cam.start();
@@ -48,7 +50,7 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   @Override public void paint(Graphics g) {
     final BufferedImage image = cam.capture();
-    if (image == null) {
+    if (image == null || dialog) {
       return;
     }
     drawFaces(g, image);
@@ -75,7 +77,7 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       final Rectangle r = face.box;
       g2.drawRect(r.x, r.y, r.width, r.height);
       if (face.name != null) {
-        final String stats = String.format("%s: %.3f", face.name, face.confidence);
+        final String stats = String.format("%s: %f", face.name, face.confidence);
         g2.drawString(stats, r.x+5, r.y-5);
       }
     }
@@ -96,7 +98,9 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   @Override
   public void mouseClicked(MouseEvent mouseEvent) {
     if (currentFace != null) {
+      dialog = true;
       final String name = JOptionPane.showInputDialog(null, "Save as?");
+      dialog = false;
       db.add(name, currentFace);
       System.out.println("Saving " + name + "...");
     } else {
