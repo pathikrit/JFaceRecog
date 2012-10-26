@@ -84,6 +84,7 @@ public class FacialRecognition {
         final int[] prediction = new int[1];
         final double[] confidence = new double[1];
         algorithm.predict(iplImage, prediction, confidence);
+        confidence[0] = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
         face = new PotentialFace(r, names.get(prediction[0]), confidence[0]);
       }
       faces.add(face);
@@ -115,8 +116,9 @@ public class FacialRecognition {
   }
 
   // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
+  private static final Double THRESHHOLD = 100d;
   private static final FaceRecognizerPtr algorithmPtr =
-      createLBPHFaceRecognizer(1, 8, 8, 8, Double.MAX_VALUE);
+      createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
       //createFisherFaceRecognizer(0, THRESHHOLD).get(),
       //createEigenFaceRecognizer(0, THRESHHOLD).get()
 
