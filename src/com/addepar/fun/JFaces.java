@@ -1,35 +1,29 @@
 package com.addepar.fun;
 
 import com.addepar.fun.hack.FaceDetector;
+import com.addepar.fun.hack.WebCam;
 
-import java.applet.Applet;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
-import javax.imageio.ImageIO;
 import javax.swing.JApplet;
-
-import com.googlecode.javacv.FrameGrabber;
-import com.googlecode.javacv.OpenCVFrameGrabber;
-
-import static com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class JFaces extends JApplet implements Runnable {
 
-  private FrameGrabber grabber = null;
-  private IplImage grabbedImage = null;
-  private boolean stop = false;
+  private final WebCam cam = new WebCam();
+
+  private BufferedImage image = null;
   private BufferedImage currentFace = null;
   private List<Rectangle> faces = null;
+  private boolean running = true;
 
   @Override public void init() {
+    cam.start();
     setSize(1600, 900);
   }
 
@@ -38,31 +32,11 @@ public class JFaces extends JApplet implements Runnable {
   }
 
   public void run() {
-    try {
-      int CAMERA_NUMBER = 0;
-      try {
-        grabber = FrameGrabber.createDefault(CAMERA_NUMBER);
-      } catch (Exception e) {
-        if (grabber != null) grabber.release();
-        grabber = new OpenCVFrameGrabber(CAMERA_NUMBER);
+    while (running && (image = cam.run()) != null) {
+      if (faces == null) {
+        faces = FaceDetector.detectFaces(image);
+        repaint();
       }
-
-      grabber.start();
-      grabbedImage = grabber.grab();
-
-      stop = false;
-      while (!stop && (grabbedImage = grabber.grab()) != null) {
-        if (faces == null) {
-          faces = FaceDetector.detectFaces(grabbedImage);
-          repaint();
-        }
-      }
-      grabbedImage = null;
-      grabber.stop();
-      grabber.release();
-      grabber = null;
-    } catch (Exception e) {
-     e.printStackTrace();
     }
   }
 
@@ -71,10 +45,9 @@ public class JFaces extends JApplet implements Runnable {
   }
 
   @Override public void paint(Graphics g) {
-    if (grabbedImage == null) {
+    if (image == null) {
       return;
     }
-    BufferedImage image = grabbedImage.getBufferedImage(2.2 / grabber.getGamma());
     Graphics2D g2 = image.createGraphics();
     if (faces != null) {
       g2.setColor(Color.RED);
@@ -90,23 +63,14 @@ public class JFaces extends JApplet implements Runnable {
       faces = null;
     }
     g.drawImage(image, 0, 0, null);
-
   }
 
 
   @Override public void stop() {
-    stop = true;
+    running = false;
   }
 
   @Override public void destroy() {
-    try {
-      ImageIO.write(currentFace, "png", new File("capture.png"));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-  public double getMatchProbability() {
-    return 90 + 10*Math.random();
+    cam.stop();
   }
 }

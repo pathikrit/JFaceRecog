@@ -40,25 +40,26 @@ public class FaceDetector {
   }
 
   private final static CvMemStorage storage = CvMemStorage.create();
+  private final static int F = 4; // scaling factor
 
-  public static synchronized List<Rectangle> detectFaces(IplImage image) {
+  public static synchronized List<Rectangle> detectFaces(BufferedImage image) {
     cvClearMemStorage(storage);
     final CvSeq cvSeq = cvHaarDetectObjects(toTinyGray(image), classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
     final int N = cvSeq.total();
     final List<Rectangle> ret = Lists.newArrayListWithCapacity(N);
     for (int i = 0; i < N; i++) {
       CvRect r = new CvRect(cvGetSeqElem(cvSeq, i));
-      ret.add(new Rectangle(r.x()*4, r.y()*4, r.width()*4, r.height()*4));
+      ret.add(new Rectangle(r.x()* F, r.y()* F, r.width()* F, r.height()* F));
     }
     return ret;
   }
 
-  public static IplImage toTinyGray(IplImage image) {
+  private static IplImage toTinyGray(BufferedImage bufferedImage) {
+    final IplImage image = IplImage.createFrom(bufferedImage);
     final IplImage gray = IplImage.create(image.width(), image.height(), IPL_DEPTH_8U, 1);
-    final IplImage tiny = IplImage.create(image.width()/4, image.height()/4, IPL_DEPTH_8U, 1);
+    final IplImage tiny = IplImage.create(image.width()/F, image.height()/F, IPL_DEPTH_8U, 1);
     cvCvtColor(image, gray, CV_BGR2GRAY);
     cvResize(gray, tiny, CV_INTER_AREA);
     return tiny;
   }
-
 }
