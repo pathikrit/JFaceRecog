@@ -10,6 +10,8 @@ Linux:
 
 Finally, Open IntelliJ -> File -> Open -> Open the .iml file
 
+Run `src/Example/FaceApplet.java` and click anywhere on the webcam image
+
 
 
 

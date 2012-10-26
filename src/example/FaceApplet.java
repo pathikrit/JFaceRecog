@@ -1,9 +1,4 @@
-package com.addepar.fun;
-
-import com.addepar.fun.hack.FaceDb;
-import com.addepar.fun.hack.FacialRecognition;
-import com.addepar.fun.hack.FacialRecognition.PotentialFace;
-import com.addepar.fun.hack.WebCam;
+package example;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -17,6 +12,11 @@ import java.util.List;
 
 import javax.swing.JApplet;
 import javax.swing.JOptionPane;
+
+import lib.FaceDb;
+import lib.FacialRecognition;
+import lib.FacialRecognition.PotentialFace;
+import lib.WebCam;
 
 public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
