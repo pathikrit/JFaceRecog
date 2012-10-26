@@ -1,5 +1,12 @@
 package lib;
 
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.googlecode.javacpp.Loader;
@@ -13,13 +20,6 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import com.googlecode.javacv.cpp.opencv_core.MatVector;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import org.apache.commons.lang3.tuple.Pair;
-
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import static com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer;
 import static com.googlecode.javacv.cpp.opencv_core.CV_32SC1;
@@ -43,7 +43,7 @@ public class FacialRecognition {
   public static class PotentialFace {
     public final Rectangle box;
     public final String name;
-    public final double confidence;  // confidence that face at r is name
+    public final double confidence;  // confidence that face at box is name
 
     protected PotentialFace(Rectangle box, String name, double confidence) {
       this.box = box;
@@ -57,72 +57,84 @@ public class FacialRecognition {
     }
   }
 
-  private static Map<FaceDb, FaceRecognizer> algorithmCache = Maps.newConcurrentMap();
+  private static Map<FaceDb, Training> trainingCache = Maps.newConcurrentMap();
+
+  static void invalidateTrainingCache(FaceDb db) {
+    trainingCache.remove(db);
+  }
 
   /**
    * This is the only public method of this class
    * If db is not null it tries to identify faces given db
-   * Else if db is null, it simply does facial detection and not recognition
+   * Else if db is null or empty, it simply does facial detection and not recognition
    */
   public static synchronized List<PotentialFace> run(BufferedImage image, FaceDb db) {
-    final FaceRecognizer algorithm;
-    final Map<Integer, String> names;
-    if (canDoFacialRecognition(db)) {
-      algorithm = algorithmPtr.get();
-      names = train(algorithm, db); // TODO!!! This is expensive and thus should be cached on disk using algorithm.save
+    final Training training;
+    if (db != null && db.size() > 0) {
+      if (!trainingCache.containsKey(db)) {
+        trainingCache.put(db, new Training(db));
+      }
+      training = trainingCache.get(db);
     } else {
-      algorithm = null;
-      names = null;
+      training = null;
     }
 
     final List<PotentialFace> faces = Lists.newArrayList();
-    for(Rectangle r : detectFaces(image)) {
-      final PotentialFace face;
-      if (algorithm == null) {
-        face = new PotentialFace(r, null, Double.NaN);
-      } else {
-        final BufferedImage candidate = image.getSubimage(r.x, r.y, r.width, r.height);
-        final IplImage iplImage = toTinyGray(candidate, scale);
-        final int[] prediction = new int[1];
-        final double[] confidence = new double[1];
-        algorithm.predict(iplImage, prediction, confidence);
-        confidence[0] = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
-        face = new PotentialFace(r, names.get(prediction[0]), confidence[0]);
-      }
+    for(Rectangle box : detectFaces(image)) {
+      final PotentialFace face = training == null ? new PotentialFace(box, null, Double.NaN) : training.identify(image, box);
       faces.add(face);
     }
     return faces;
   }
 
-  /**
-   * code from here: http://stackoverflow.com/questions/11913980/
-   */
-  private static Map<Integer, String> train(FaceRecognizer algorithm, FaceDb db) {
-    final int numberOfImages = db.size();
-    final MatVector images = new MatVector(numberOfImages);
-    final CvMat labels = cvCreateMat(1, numberOfImages, CV_32SC1);
-    final Map<Integer, String> names = Maps.newHashMap();
+  private static class Training {
+    // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
+    private static final Double THRESHHOLD = 100d;
+    private static final FaceRecognizerPtr ALGO_FACTORY =
+        createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
+        //createFisherFaceRecognizer(0, THRESHHOLD).get(),
+        //createEigenFaceRecognizer(0, THRESHHOLD).get()
+    private static final Pair<Integer, Integer> scale = Pair.of(100, 100);
 
-    int imgCount = 0, personCount = 0;
-    for(String name : db.names()) {
-      for (BufferedImage image : db.get(name)) {
-        images.put(imgCount, toTinyGray(image, scale));
-        labels.put(imgCount, personCount);
-        imgCount++;
+    private final Map<Integer, String> names = Maps.newHashMap();
+    private final FaceRecognizer algorithm;
+
+    /**
+     * Creating new trainings are VERY expensive and should be always cached
+     * http://stackoverflow.com/questions/11913980/
+     */
+    Training(FaceDb db) {
+      this.algorithm = ALGO_FACTORY.get();
+      final int numberOfImages = db.size();
+      final MatVector images = new MatVector(numberOfImages);
+      final CvMat labels = cvCreateMat(1, numberOfImages, CV_32SC1);
+
+      int imgCount = 0, personCount = 0;
+      for(String name : db.names()) {
+        for (BufferedImage image : db.get(name)) {
+          images.put(imgCount, toTinyGray(image, scale));
+          labels.put(imgCount, personCount);
+          imgCount++;
+        }
+        names.put(personCount++, name);
       }
-      names.put(personCount++, name);
+
+      algorithm.train(images, labels);
     }
 
-    algorithm.train(images, labels);
-    return names;
+    /**
+     * Identify the face in bounding box r in image
+     */
+    PotentialFace identify(BufferedImage image, Rectangle r) {
+      final BufferedImage candidate = image.getSubimage(r.x, r.y, r.width, r.height);
+      final IplImage iplImage = toTinyGray(candidate, scale);
+      final int[] prediction = new int[1];
+      final double[] confidence = new double[1];
+      algorithm.predict(iplImage, prediction, confidence);
+      confidence[0] = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
+      return new PotentialFace(r, names.get(prediction[0]), confidence[0]);
+    }
   }
-
-  // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
-  private static final Double THRESHHOLD = 100d;
-  private static final FaceRecognizerPtr algorithmPtr =
-      createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
-      //createFisherFaceRecognizer(0, THRESHHOLD).get(),
-      //createEigenFaceRecognizer(0, THRESHHOLD).get()
 
   private static final CvHaarClassifierCascade classifier;
   static {
@@ -138,7 +150,6 @@ public class FacialRecognition {
 
   private static final CvMemStorage storage = CvMemStorage.create();
   private static final int F = 4; // scaling factor
-  private static final Pair<Integer, Integer> scale = Pair.of(100, 100);
 
   /**
    * This does facial detection and NOT facial recognition
@@ -168,9 +179,5 @@ public class FacialRecognition {
     cvCvtColor(iplImage, gray, CV_BGR2GRAY);   //todo: do tiny before gray
     cvResize(gray, tiny, CV_INTER_AREA);
     return tiny;
-  }
-
-  private static boolean canDoFacialRecognition(FaceDb db) {
-    return db != null && db.size() > 0;
   }
 }

@@ -1,12 +1,12 @@
 package lib;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-
 import java.awt.image.BufferedImage;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 
 // todo: this should be persisted in db
 public class FaceDb {
@@ -18,6 +18,7 @@ public class FaceDb {
     pics.put(name, pic);
     final String id = UUID.randomUUID().toString();
     idIndex.put(id, pic);
+    afterWrite();
     return id;
   }
 
@@ -43,5 +44,9 @@ public class FaceDb {
   @Override
   public boolean equals(Object that) {
     return that instanceof FaceDb && ((FaceDb) that).idIndex.equals(idIndex) && ((FaceDb) that).pics.equals(pics);
+  }
+
+  private void afterWrite() {
+    FacialRecognition.invalidateTrainingCache(this);
   }
 }
