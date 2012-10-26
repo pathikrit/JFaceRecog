@@ -1,6 +1,5 @@
 package com.addepar.fun.hack;
 
-
 import java.awt.image.BufferedImage;
 
 import com.google.common.base.Throwables;
@@ -44,5 +43,4 @@ public class WebCam {
       return new OpenCVFrameGrabber(CAMERA_NUMBER);
     }
   }
-
 }

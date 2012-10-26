@@ -2,7 +2,7 @@ package com.addepar.fun;
 
 import com.addepar.fun.hack.FaceDb;
 import com.addepar.fun.hack.FacialRecognition;
-import com.addepar.fun.hack.FaceRecognizer;
+import com.addepar.fun.hack.FacialRecognition.PotentialFace;
 import com.addepar.fun.hack.WebCam;
 
 import java.awt.BasicStroke;
@@ -55,19 +55,20 @@ public class JFaces extends JApplet implements Runnable, MouseListener {
   }
 
   public void drawFaces(Graphics g, BufferedImage image) {
-    final List<Rectangle> faces = FacialRecognition.detectFaces(image);
+    final List<PotentialFace> faces = FacialRecognition.run(image, null);
     if (faces.isEmpty()) {
       return;
     }
     Graphics2D g2 = image.createGraphics();
     g2.setColor(Color.RED);
     g2.setStroke(new BasicStroke(2));
-    for (Rectangle r : faces) {
+    for (PotentialFace face : faces) {
+      final Rectangle r = face.box;
       g2.drawRect(r.x, r.y, r.width, r.height);
     }
 
     if (faces.size() == 1) {
-      Rectangle r = faces.get(0);
+      Rectangle r = faces.get(0).box;
       if (currentFace != null) {
         g.clearRect(image.getWidth(), 0, currentFace.getWidth(), currentFace.getHeight());
       }
@@ -95,8 +96,8 @@ public class JFaces extends JApplet implements Runnable, MouseListener {
       if (db.size() == 0) {
         db.add("rick", currentFace);
       } else {
-        FaceRecognizer fr = new FaceRecognizer(db);
-        System.out.println(fr.identifyFaces(cam.capture()));
+        final List<PotentialFace> matches = FacialRecognition.run(cam.capture(), db);
+        System.out.println(matches);
       }
     } else {
       System.out.println("No face in frame");
