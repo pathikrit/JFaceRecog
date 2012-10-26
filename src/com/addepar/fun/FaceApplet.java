@@ -16,6 +16,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 import javax.swing.JApplet;
+import javax.swing.JOptionPane;
 
 public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
@@ -55,18 +56,13 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   }
 
   public void drawFaces(Graphics g, BufferedImage image) {
-    final List<PotentialFace> faces = FacialRecognition.run(image, null);
+    final List<PotentialFace> faces = FacialRecognition.run(image, db);
     if (faces.isEmpty()) {
       return;
     }
     Graphics2D g2 = image.createGraphics();
     g2.setColor(Color.RED);
     g2.setStroke(new BasicStroke(2));
-    for (PotentialFace face : faces) {
-      final Rectangle r = face.box;
-      g2.drawRect(r.x, r.y, r.width, r.height);
-    }
-
     if (faces.size() == 1) {
       Rectangle r = faces.get(0).box;
       if (currentFace != null) {
@@ -74,6 +70,14 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       }
       currentFace = image.getSubimage(r.x, r.y, r.width, r.height);
       g.drawImage(currentFace, image.getWidth(), 0, null);
+    }
+    for (PotentialFace face : faces) {
+      final Rectangle r = face.box;
+      g2.drawRect(r.x, r.y, r.width, r.height);
+      if (face.name != null) {
+        final String stats = String.format("%s: %.3f", face.name, face.confidence);
+        g2.drawString(stats, r.x+5, r.y-5);
+      }
     }
   }
 
@@ -91,14 +95,10 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   @Override
   public void mouseClicked(MouseEvent mouseEvent) {
-
     if (currentFace != null) {
-      if (db.size() == 0) {
-        db.add("rick", currentFace);
-      } else {
-        final List<PotentialFace> matches = FacialRecognition.run(cam.capture(), db);
-        System.out.println(matches);
-      }
+      final String name = JOptionPane.showInputDialog(null, "Save as?");
+      db.add(name, currentFace);
+      System.out.println("Saving " + name + "...");
     } else {
       System.out.println("No face in frame");
     }
