@@ -14,6 +14,7 @@ import com.googlecode.javacv.cpp.opencv_core.CvRect;
 import com.googlecode.javacv.cpp.opencv_core.CvSeq;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
+import org.apache.commons.lang3.tuple.Pair;
 
 import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
 import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
@@ -86,7 +87,7 @@ public class FacialRecognition {
 
   public static synchronized List<Rectangle> detectFaces(BufferedImage image) {
     cvClearMemStorage(storage);
-    final CvSeq cvSeq = cvHaarDetectObjects(toTinyGray(image), classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+    final CvSeq cvSeq = cvHaarDetectObjects(toTinyGray(image, null), classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
     final int N = cvSeq.total();
     final List<Rectangle> ret = Lists.newArrayListWithCapacity(N);
     for (int i = 0; i < N; i++) {
@@ -96,11 +97,14 @@ public class FacialRecognition {
     return ret;
   }
 
-  private static IplImage toTinyGray(BufferedImage bufferedImage) {
-    final IplImage image = IplImage.createFrom(bufferedImage);
-    final IplImage gray = IplImage.create(image.width(), image.height(), IPL_DEPTH_8U, 1);
-    final IplImage tiny = IplImage.create(image.width()/F, image.height()/F, IPL_DEPTH_8U, 1);
-    cvCvtColor(image, gray, CV_BGR2GRAY);
+  protected static IplImage toTinyGray(BufferedImage image, Pair<Integer, Integer> scale) {
+    final IplImage iplImage = IplImage.createFrom(image);
+    if (scale == null) {
+      scale = Pair.of(iplImage.width()/F, iplImage.height()/F);
+    }
+    final IplImage gray = IplImage.create(iplImage.width(), iplImage.height(), IPL_DEPTH_8U, 1);
+    final IplImage tiny = IplImage.create(scale.getLeft(), scale.getRight(), IPL_DEPTH_8U, 1);
+    cvCvtColor(iplImage, gray, CV_BGR2GRAY);   //todo: do tiny before gray
     cvResize(gray, tiny, CV_INTER_AREA);
     return tiny;
   }
