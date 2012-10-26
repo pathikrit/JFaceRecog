@@ -62,7 +62,6 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       return;
     }
     Graphics2D g2 = image.createGraphics();
-    g2.setColor(Color.RED);
     g2.setStroke(new BasicStroke(2));
     if (faces.size() == 1) {
       Rectangle r = faces.get(0).box;
@@ -74,11 +73,18 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
     }
     for (PotentialFace face : faces) {
       final Rectangle r = face.box;
-      g2.drawRect(r.x, r.y, r.width, r.height);
-      if (face.name != null) {
-        final String stats = String.format("%s: %f", face.name, face.confidence);
-        g2.drawString(stats, r.x+5, r.y-5);
+      final Color c;
+      final String msg;
+      if (face.name == null) {
+        c = Color.RED;
+        msg = "Click to tag";
+      } else {
+        c = new Color(face.name.hashCode());
+        msg = String.format("%s: %f", face.name, face.confidence);
       }
+      g2.setColor(c);
+      g2.drawRect(r.x, r.y, r.width, r.height);
+      g2.drawString(msg, r.x+5, r.y-5);
     }
   }
 
