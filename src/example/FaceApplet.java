@@ -1,5 +1,6 @@
 package example;
 
+import com.google.common.collect.Lists;
 import lib.FaceDb;
 import lib.FacialRecognition;
 import lib.FacialRecognition.PotentialFace;
@@ -16,7 +17,8 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   private final WebCam cam = new WebCam();
 
-  private BufferedImage currentFace = null;
+  private List<Rectangle> currentFaces = Lists.newArrayList();
+  private BufferedImage currentDisplay;
 
   private boolean running = true;
   private boolean dialog = false;
@@ -48,12 +50,13 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   @Override
   public void paint(Graphics g) {
-    final BufferedImage image = cam.capture();
-    if (image == null || dialog) {
+    currentDisplay = cam.capture();
+    if (currentDisplay == null || dialog) {
       return;
     }
-    drawFaces(image);
-    g.drawImage(image, 0, 0, null);
+
+    drawFaces(currentDisplay);
+    g.drawImage(currentDisplay, 0, 0, null);
   }
 
   public void drawFaces(BufferedImage image) {
@@ -63,6 +66,7 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
     }
     Graphics2D g2 = image.createGraphics();
     g2.setStroke(new BasicStroke(2));
+    currentFaces.clear();
     for (PotentialFace face : faces) {
       final Rectangle r = face.box;
       final Color c;
@@ -77,6 +81,7 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       g2.setColor(c);
       g2.drawRect(r.x, r.y, r.width, r.height);
       g2.drawString(msg, r.x + 5, r.y - 5);
+      currentFaces.add(r);
     }
   }
 
@@ -93,33 +98,41 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   private final FaceDb db = new FaceDb();
 
   @Override
-  public void mouseClicked(MouseEvent mouseEvent) {
-    if (currentFace == null) {
+  public void mouseClicked(MouseEvent evt) {
+    if (currentFaces == null) {
       System.out.println("No face in frame");
       return;
     }
     dialog = true;
-    final String name = (String) JOptionPane.showInputDialog(null, "Save as?", "Tag", JOptionPane.QUESTION_MESSAGE, new ImageIcon(currentFace, "Preview"), null, null);
-    dialog = false;
-    if (name != null) {
-      System.out.println("Saving " + name + "...");
-      db.add(name, currentFace);
+    for(Rectangle r : currentFaces) {
+      if (r.contains(evt.getPoint())) {
+        final BufferedImage clickedFace = currentDisplay.getSubimage(r.x, r.y, r.width, r.height);
+        final ImageIcon preview = new ImageIcon(clickedFace, "Preview");
+        final String name = (String) JOptionPane.showInputDialog(null, "Save as?", "Tag", JOptionPane.QUESTION_MESSAGE, preview, null, null);
+        if (name != null) {
+          System.out.println("Saving " + name + "...");
+          db.add(name, clickedFace);
+        }
+        break;
+      }
     }
+    dialog = false;
+
   }
 
   @Override
-  public void mousePressed(MouseEvent mouseEvent) {
+  public void mousePressed(MouseEvent evt) {
   }
 
   @Override
-  public void mouseReleased(MouseEvent mouseEvent) {
+  public void mouseReleased(MouseEvent evt) {
   }
 
   @Override
-  public void mouseEntered(MouseEvent mouseEvent) {
+  public void mouseEntered(MouseEvent evt) {
   }
 
   @Override
-  public void mouseExited(MouseEvent mouseEvent) {
+  public void mouseExited(MouseEvent evt) {
   }
 }

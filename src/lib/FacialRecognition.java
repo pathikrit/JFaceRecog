@@ -1,12 +1,5 @@
 package lib;
 
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.googlecode.javacpp.Loader;
@@ -20,6 +13,13 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import com.googlecode.javacv.cpp.opencv_core.MatVector;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import static com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer;
 import static com.googlecode.javacv.cpp.opencv_core.CV_32SC1;
@@ -57,12 +57,14 @@ public class FacialRecognition {
     }
   }
 
+  private static Map<FaceDb, FaceRecognizer> algorithmCache = Maps.newConcurrentMap();
+
   /**
    * This is the only public method of this class
    * If db is not null it tries to identify faces given db
    * Else if db is null, it simply does facial detection and not recognition
    */
-  public static List<PotentialFace> run(BufferedImage image, FaceDb db) {
+  public static synchronized List<PotentialFace> run(BufferedImage image, FaceDb db) {
     final FaceRecognizer algorithm;
     final Map<Integer, String> names;
     if (canDoFacialRecognition(db)) {
