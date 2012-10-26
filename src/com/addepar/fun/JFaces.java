@@ -17,9 +17,8 @@ public class JFaces extends JApplet implements Runnable {
 
   private final WebCam cam = new WebCam();
 
-  private BufferedImage image = null;
   private BufferedImage currentFace = null;
-  private List<Rectangle> faces = null;
+
   private boolean running = true;
 
   @Override public void init() {
@@ -32,11 +31,8 @@ public class JFaces extends JApplet implements Runnable {
   }
 
   public void run() {
-    while (running && (image = cam.run()) != null) {
-      if (faces == null) {
-        faces = FaceDetector.detectFaces(image);
-        repaint();
-      }
+    while (running) {
+      repaint();
     }
   }
 
@@ -45,24 +41,34 @@ public class JFaces extends JApplet implements Runnable {
   }
 
   @Override public void paint(Graphics g) {
+    final BufferedImage image = cam.run();
     if (image == null) {
       return;
     }
-    Graphics2D g2 = image.createGraphics();
-    if (faces != null) {
-      g2.setColor(Color.RED);
-      g2.setStroke(new BasicStroke(2));
-      for (Rectangle r : faces) {
-        if (currentFace != null) {
-          g.clearRect(image.getWidth(), 0, currentFace.getWidth(), currentFace.getHeight());
-        }
-        currentFace = image.getSubimage(r.x, r.y, r.width, r.height);
-        g.drawImage(currentFace, image.getWidth(), 0, null);
-        g2.drawRect(r.x, r.y, r.width, r.height);
-      }
-      faces = null;
-    }
+    drawFaces(g, image);
     g.drawImage(image, 0, 0, null);
+  }
+
+  public void drawFaces(Graphics g, BufferedImage image) {
+    final List<Rectangle> faces = FaceDetector.detectFaces(image);
+    if (faces.isEmpty()) {
+      return;
+    }
+    Graphics2D g2 = image.createGraphics();
+    g2.setColor(Color.RED);
+    g2.setStroke(new BasicStroke(2));
+    for (Rectangle r : faces) {
+      g2.drawRect(r.x, r.y, r.width, r.height);
+    }
+
+    if (faces.size() == 1) {
+      Rectangle r = faces.get(0);
+      if (currentFace != null) {
+        g.clearRect(image.getWidth(), 0, currentFace.getWidth(), currentFace.getHeight());
+      }
+      currentFace = image.getSubimage(r.x, r.y, r.width, r.height);
+      g.drawImage(currentFace, image.getWidth(), 0, null);
+    }
   }
 
 
