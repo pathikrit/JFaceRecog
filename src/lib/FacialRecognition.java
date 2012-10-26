@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.googlecode.javacpp.Loader;
@@ -41,10 +42,14 @@ public class FacialRecognition {
    */
   public static class PotentialFace {
     public final Rectangle box;
-    public final String name;
-    public final double confidence;  // confidence that face at box is name
+    public String name;        // name of person at box - null if unidentified
+    public double confidence;  // confidence that face at box is name - NaN if name is null
 
-    protected PotentialFace(Rectangle box, String name, double confidence) {
+    static PotentialFace newUnidentifiedFace(Rectangle box) {
+      return new PotentialFace(box, null, Double.NaN);
+    }
+
+    PotentialFace(Rectangle box, String name, double confidence) {
       this.box = box;
       this.name = name;
       this.confidence = confidence;
@@ -56,34 +61,34 @@ public class FacialRecognition {
     }
   }
 
+  /**
+   * Does facial recognition (or detection only if db is null or empty)
+   */
+  public static synchronized List<PotentialFace> run(BufferedImage image, FaceDb db) {
+    final List<PotentialFace> faces = detectFaces(image);
+
+    if (db != null && db.size() > 0) {
+      if (!trainingCache.containsKey(db)) {
+        trainingCache.put(db, new Training(db));
+      }
+      final Training training = trainingCache.get(db);
+
+      for(PotentialFace face : faces) {
+        training.identify(image, face);
+      }
+    }
+
+    return faces;
+  }
+
   private static Map<FaceDb, Training> trainingCache = Maps.newConcurrentMap();
 
   static void invalidateTrainingCache(FaceDb db) {
     trainingCache.remove(db);
   }
 
-  /**
-   * This is the only public method of this class
-   * If db is not null it tries to identify faces given db
-   * Else if db is null or empty, it simply does facial detection and not recognition
-   */
-  public static synchronized List<PotentialFace> run(BufferedImage image, FaceDb db) {
-    final Training training;
-    if (db != null && db.size() > 0) {
-      if (!trainingCache.containsKey(db)) {
-        trainingCache.put(db, new Training(db));
-      }
-      training = trainingCache.get(db);
-    } else {
-      training = null;
-    }
-
-    final List<PotentialFace> faces = Lists.newArrayList();
-    for(Rectangle box : detectFaces(image)) {
-      final PotentialFace face = training == null ? new PotentialFace(box, null, Double.NaN) : training.identify(image, box);
-      faces.add(face);
-    }
-    return faces;
+  private FacialRecognition() {
+    // no one can construct me - I only have one public static method - run
   }
 
   private static class Training {
@@ -103,7 +108,6 @@ public class FacialRecognition {
      * http://stackoverflow.com/questions/11913980/
      */
     Training(FaceDb db) {
-      this.algorithm = ALGO_FACTORY.get();
       final int numberOfImages = db.size();
       final MatVector images = new MatVector(numberOfImages);
       final CvMat labels = cvCreateMat(1, numberOfImages, CV_32SC1);
@@ -118,49 +122,51 @@ public class FacialRecognition {
         names.put(personCount++, name);
       }
 
+      this.algorithm = ALGO_FACTORY.get();
       algorithm.train(images, labels);
     }
 
     /**
      * Identify the face in bounding box r in image
      */
-    PotentialFace identify(BufferedImage image, Rectangle r) {
+    void identify(BufferedImage image, PotentialFace face) {
+      final Rectangle r = face.box;
       final BufferedImage candidate = image.getSubimage(r.x, r.y, r.width, r.height);
       final IplImage iplImage = toTinyGray(candidate, scale);
       final int[] prediction = new int[1];
       final double[] confidence = new double[1];
       algorithm.predict(iplImage, prediction, confidence);
-      confidence[0] = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
-      return new PotentialFace(r, names.get(prediction[0]), confidence[0]);
+      face.name = names.get(prediction[0]);
+      face.confidence = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
     }
   }
 
+  private static final CvMemStorage storage = CvMemStorage.create();
+  private static final int F = 4; // scaling factor
   private static final CvHaarClassifierCascade classifier;
   static {
     final File classifierFile;
     try {
       classifierFile = Loader.extractResource("haarcascade_frontalface_alt.xml", null, "classifier", ".xml");
+      classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw Throwables.propagate(e);
     }
-    // Loader.load(opencv_objdetect.class); // Preload the opencv_objdetect module to work around a known bug.
-    classifier = new CvHaarClassifierCascade(cvLoad(classifierFile.getAbsolutePath()));
   }
-
-  private static final CvMemStorage storage = CvMemStorage.create();
-  private static final int F = 4; // scaling factor
 
   /**
    * This does facial detection and NOT facial recognition
    */
-  private static synchronized List<Rectangle> detectFaces(BufferedImage image) {
+  private static synchronized List<PotentialFace> detectFaces(BufferedImage image) {
     cvClearMemStorage(storage);
-    final CvSeq cvSeq = cvHaarDetectObjects(toTinyGray(image, null), classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
+    final IplImage iplImage = toTinyGray(image, null);
+    final CvSeq cvSeq = cvHaarDetectObjects(iplImage, classifier, storage, 1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
     final int N = cvSeq.total();
-    final List<Rectangle> ret = Lists.newArrayListWithCapacity(N);
+    final List<PotentialFace> ret = Lists.newArrayListWithCapacity(N);
     for (int i = 0; i < N; i++) {
-      CvRect r = new CvRect(cvGetSeqElem(cvSeq, i));
-      ret.add(new Rectangle(r.x()* F, r.y()* F, r.width()* F, r.height()* F));
+      final CvRect r = new CvRect(cvGetSeqElem(cvSeq, i));
+      final Rectangle box = new Rectangle(r.x() * F, r.y() * F, r.width() * F, r.height() * F);
+      ret.add(PotentialFace.newUnidentifiedFace(box));
     }
     return ret;
   }
