@@ -24,7 +24,9 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
   @Override
   public void init() {
     cam.start();
-    setSize(1600, 900);
+    BufferedImage first;
+    while((first = cam.capture()) == null);
+    setSize(first.getWidth(), first.getHeight());
     addMouseListener(this);
   }
 
