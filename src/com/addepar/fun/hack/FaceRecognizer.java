@@ -49,9 +49,9 @@ public class FaceRecognizer {
     algorithm.save(algorithm.name() + ".yml");  // save the expensive hard work
   }
 
-  public FaceRecognition identifyFaces(BufferedImage image) {
-    final FaceRecognition result = new FaceRecognition(image);
-    for(Rectangle r : FaceDetector.detectFaces(image)) {
+  public FacialRecognition identifyFaces(BufferedImage image) {
+    final FacialRecognition result = new FacialRecognition(image);
+    for(Rectangle r : FacialRecognition.detectFaces(image)) {
       final BufferedImage candidate = image.getSubimage(r.x, r.y, r.width, r.height);
       final IplImage iplImage = toTinyGray(candidate);
       final int[] prediction = new int[1];

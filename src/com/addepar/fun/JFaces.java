@@ -1,7 +1,7 @@
 package com.addepar.fun;
 
 import com.addepar.fun.hack.FaceDb;
-import com.addepar.fun.hack.FaceDetector;
+import com.addepar.fun.hack.FacialRecognition;
 import com.addepar.fun.hack.FaceRecognizer;
 import com.addepar.fun.hack.WebCam;
 
@@ -55,7 +55,7 @@ public class JFaces extends JApplet implements Runnable, MouseListener {
   }
 
   public void drawFaces(Graphics g, BufferedImage image) {
-    final List<Rectangle> faces = FaceDetector.detectFaces(image);
+    final List<Rectangle> faces = FacialRecognition.detectFaces(image);
     if (faces.isEmpty()) {
       return;
     }
@@ -96,7 +96,7 @@ public class JFaces extends JApplet implements Runnable, MouseListener {
         db.add("rick", currentFace);
       } else {
         FaceRecognizer fr = new FaceRecognizer(db);
-        System.out.println(fr.identifyFaces(currentFace));
+        System.out.println(fr.identifyFaces(cam.capture()));
       }
     } else {
       System.out.println("No face in frame");

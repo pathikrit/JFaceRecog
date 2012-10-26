@@ -1,5 +1,6 @@
 package com.addepar.fun.hack;
 
+
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -25,7 +26,48 @@ import static com.googlecode.javacv.cpp.opencv_imgproc.cvResize;
 import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
 
-public class FaceDetector {
+public class FacialRecognition {
+
+  private final BufferedImage src;
+  private final List<PotentialFace> faces = Lists.newArrayList();
+
+  public FacialRecognition(BufferedImage src) {
+    this.src = src;
+  }
+
+  public List<PotentialFace> getMatches() {
+    return faces;
+  }
+
+  protected void add(Rectangle r, String name, double confidence) {
+    faces.add(new PotentialFace(r, name, confidence));
+  }
+
+  public static class PotentialFace {
+    private final Rectangle r;
+    private final String name;
+    private final double confidence;  // confidence that face at r is name
+
+    public PotentialFace(Rectangle r, String name, double confidence) {
+      this.r = r;
+      this.name = name;
+      this.confidence = confidence;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s found at (%d,%d) with confidence = %s", name, r.x, r.y, confidence);
+    }
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder out = new StringBuilder();
+    for(PotentialFace f : faces) {
+      out.append("\t").append(f).append("\n");
+    }
+    return out.toString();
+  }
 
   private static final CvHaarClassifierCascade classifier;
   static {
