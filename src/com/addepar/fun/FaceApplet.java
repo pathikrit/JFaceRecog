@@ -17,7 +17,7 @@ import java.util.List;
 
 import javax.swing.JApplet;
 
-public class JFaces extends JApplet implements Runnable, MouseListener {
+public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
   private final WebCam cam = new WebCam();
 
