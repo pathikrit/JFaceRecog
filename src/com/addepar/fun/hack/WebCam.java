@@ -20,7 +20,7 @@ public class WebCam {
     }
   }
 
-  public BufferedImage run() {
+  public BufferedImage capture() {
     try {
       return grabber.grab().getBufferedImage();
     } catch (FrameGrabber.Exception e) {
@@ -39,9 +39,9 @@ public class WebCam {
 
   private FrameGrabber initGrabber() {
     try {
-      return FrameGrabber.createDefault(0);
+      return FrameGrabber.createDefault(CAMERA_NUMBER);
     } catch (Exception e) {
-      return new OpenCVFrameGrabber(0);
+      return new OpenCVFrameGrabber(CAMERA_NUMBER);
     }
   }
 
