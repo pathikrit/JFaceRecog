@@ -69,6 +69,7 @@ public class FacialRecognition {
 
     if (db != null && db.size() > 0) {
       if (!trainingCache.containsKey(db)) {
+        System.out.println("Training ...");
         trainingCache.put(db, new Training(db));
       }
       final Training training = trainingCache.get(db);
@@ -93,7 +94,7 @@ public class FacialRecognition {
 
   private static class Training {
     // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
-    private static final Double THRESHHOLD = 100d;
+    private static final Double THRESHHOLD = 80d;
     private static final FaceRecognizerPtr ALGO_FACTORY =
         com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
         //com.googlecode.javacv.cpp.opencv_contrib.createFisherFaceRecognizer(0, THRESHHOLD);
