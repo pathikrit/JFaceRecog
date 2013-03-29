@@ -1,12 +1,5 @@
 package lib;
 
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -22,6 +15,14 @@ import com.googlecode.javacv.cpp.opencv_core.MatVector;
 import com.googlecode.javacv.cpp.opencv_objdetect.CvHaarClassifierCascade;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static com.googlecode.javacv.cpp.opencv_core.CV_32SC1;
 import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
 import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
@@ -31,6 +32,7 @@ import static com.googlecode.javacv.cpp.opencv_core.cvLoad;
 import static com.googlecode.javacv.cpp.opencv_imgproc.CV_BGR2GRAY;
 import static com.googlecode.javacv.cpp.opencv_imgproc.CV_INTER_AREA;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvCvtColor;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvEqualizeHist;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvResize;
 import static com.googlecode.javacv.cpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
 import static com.googlecode.javacv.cpp.opencv_objdetect.cvHaarDetectObjects;
@@ -94,14 +96,14 @@ public class FacialRecognition {
 
   private static class Training {
     // We can try out different algorithms here: http://docs.opencv.org/trunk/modules/contrib/doc/facerec/facerec_api.html
-    private static final Double THRESHHOLD = 80d;
+    private static final Double THRESHHOLD = 150d;
     private static final FaceRecognizerPtr ALGO_FACTORY =
         com.googlecode.javacv.cpp.opencv_contrib.createLBPHFaceRecognizer(1, 8, 8, 8, THRESHHOLD);
         //com.googlecode.javacv.cpp.opencv_contrib.createFisherFaceRecognizer(0, THRESHHOLD);
         //com.googlecode.javacv.cpp.opencv_contrib.createEigenFaceRecognizer(0, THRESHHOLD);
     private static final Pair<Integer, Integer> scale = Pair.of(100, 100);
 
-    private final Map<Integer, String> names = Maps.newHashMap();
+    private final String[] names;
     private final FaceRecognizer algorithm;
 
     /**
@@ -110,17 +112,19 @@ public class FacialRecognition {
      */
     Training(FaceDb db) {
       final int numberOfImages = db.size();
+      final Set<String> namesInDb = db.names();
+      this.names = new String[namesInDb.size()];
       final MatVector images = new MatVector(numberOfImages);
       final CvMat labels = cvCreateMat(1, numberOfImages, CV_32SC1);
 
       int imgCount = 0, personCount = 0;
-      for(String name : db.names()) {
+      for(String name : namesInDb) {
         for (BufferedImage image : db.get(name)) {
           images.put(imgCount, toTinyGray(image, scale));
           labels.put(imgCount, personCount);
           imgCount++;
         }
-        names.put(personCount++, name);
+        names[personCount++] = name;
       }
 
       this.algorithm = ALGO_FACTORY.get();
@@ -137,8 +141,11 @@ public class FacialRecognition {
       final int[] prediction = new int[1];
       final double[] confidence = new double[1];
       algorithm.predict(iplImage, prediction, confidence);
-      face.name = names.get(prediction[0]);
-      face.confidence = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
+      if (prediction[0] >= 0 && prediction[0] < names.length) {
+        face.name = names[prediction[0]];
+        //face.confidence = 100*(THRESHHOLD - confidence[0])/THRESHHOLD;
+        face.confidence = confidence[0];
+      }
     }
   }
 
@@ -184,6 +191,7 @@ public class FacialRecognition {
     final IplImage tiny = IplImage.create(scale.getLeft(), scale.getRight(), IPL_DEPTH_8U, 1);
     cvCvtColor(iplImage, gray, CV_BGR2GRAY);   //todo: do tiny before gray
     cvResize(gray, tiny, CV_INTER_AREA);
+    cvEqualizeHist(tiny, tiny);
     return tiny;
   }
 }
