@@ -1,24 +1,17 @@
 package example;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
-import java.util.List;
-
-import javax.swing.ImageIcon;
-import javax.swing.JApplet;
-import javax.swing.JOptionPane;
-
 import com.google.common.collect.Lists;
 import lib.FaceDb;
 import lib.FacialRecognition;
 import lib.FacialRecognition.PotentialFace;
 import lib.WebCam;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
+import java.util.List;
 
 public class FaceApplet extends JApplet implements Runnable, MouseListener {
 
@@ -79,7 +72,7 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       final Color c1, c2;
       final String msg;
       if (face.name == null) {
-        c1 = c2 = Color.RED;
+        c1 = c2 = new Color(scale(r.x, getWidth(), 255d), scale(r.y, getHeight(), 255d), 0).brighter();
         msg = "Click to tag";
       } else {
         c1 = new Color(face.name.hashCode()).brighter();
@@ -92,6 +85,10 @@ public class FaceApplet extends JApplet implements Runnable, MouseListener {
       g2.drawString(msg, r.x + 5, r.y - 5);
       currentFaces.add(r);
     }
+  }
+
+  private static int scale(double num, double maxNum, double maxTarget) {
+    return (int) (num*maxTarget/maxNum);
   }
 
   @Override
